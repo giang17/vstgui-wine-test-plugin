@@ -6,6 +6,7 @@
 #include "vstgui/lib/cviewcontainer.h"
 #include "vstgui/lib/ccolor.h"
 #include "vstgui/lib/cfont.h"
+#include "vstgui/lib/cvstguitimer.h"
 #include "vstgui/lib/controls/ctextlabel.h"
 #include "vstgui/lib/controls/ctextedit.h"
 #include "vstgui/lib/platform/platformfactory.h"
@@ -271,6 +272,10 @@ bool PLUGIN_API Editor::open (void* parent, const PlatformType& platformType)
     frame->addView (new StressWaveformView (CRect (20, 430, 590, 475), 400, 1.5f, kGreen));
 
     frame->open (parent, platformType);
+
+    // Delayed redraw for Wine — initial WM_PAINT may show framebuffer garbage
+    CFrame* f = frame;
+    Call::later ([f] () { f->invalid (); }, 100);
 
     return true;
 }

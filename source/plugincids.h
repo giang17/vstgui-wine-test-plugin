@@ -2,7 +2,7 @@
 
 #include "pluginterfaces/base/funknown.h"
 
-#define PluginCategory "Fx|Generator"
+#define PluginCategory "Instrument|Synth"
 
 namespace WineTest {
 
