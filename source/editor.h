@@ -18,7 +18,9 @@ public:
 
 private:
     static const int kEditorWidth = 620;
-    static const int kEditorHeight = 500;
+    static const int kEditorHeight = 560;
+
+    VSTGUI::CView* animWaveform = nullptr;
 };
 
 } // namespace WineTest

@@ -4,6 +4,7 @@
 #include "vstgui/lib/cdrawcontext.h"
 #include "vstgui/lib/cgraphicspath.h"
 #include "vstgui/lib/ccolor.h"
+#include "vstgui/lib/cvstguitimer.h"
 
 #include <cmath>
 
@@ -390,4 +391,87 @@ public:
 
         setDirty (false);
     }
+};
+
+//------------------------------------------------------------------------
+// AnimatedWaveformView — timer-driven animated waveform for memory leak testing.
+// Creates a new CGraphicsPath on every draw() call (same pattern as Serum2).
+//------------------------------------------------------------------------
+class AnimatedWaveformView : public CView
+{
+public:
+    AnimatedWaveformView (const CRect& size, int segs = 200, float sw = 2.0f,
+                          CColor col = CColor (80, 255, 80, 255))
+        : CView (size), segments (segs), strokeWidth (sw), color (col) {}
+
+    ~AnimatedWaveformView () override
+    {
+        stop ();
+    }
+
+    void start ()
+    {
+        if (!timer)
+        {
+            timer = makeOwned<CVSTGUITimer> ([this] (CVSTGUITimer*) {
+                animPhase += 0.05;
+                invalid ();
+            }, 16); // ~60 fps
+        }
+    }
+
+    void stop ()
+    {
+        if (timer)
+        {
+            timer->stop ();
+            timer = nullptr;
+        }
+    }
+
+    void draw (CDrawContext* context) override
+    {
+        context->setDrawMode (kAntiAliasing);
+        auto r = getViewSize ();
+
+        // Clear background
+        context->setFillColor (CColor (30, 30, 30, 255));
+        context->drawRect (r, kDrawFilled);
+
+        // Animated waveform — new path every frame
+        if (auto path = owned (context->createGraphicsPath ()))
+        {
+            CCoord centerY = r.top + r.getHeight () * 0.5;
+            CCoord amplitude = r.getHeight () * 0.4;
+
+            path->beginSubpath (CPoint (r.left, centerY));
+            for (int i = 1; i <= segments; i++)
+            {
+                double t = (double)i / segments;
+                CCoord px = r.left + t * r.getWidth ();
+                CCoord py = centerY
+                    - amplitude * sin (t * 4.0 * M_PI + animPhase)
+                    * (0.7 + 0.3 * sin (t * 13.0 * M_PI + animPhase * 0.3));
+                path->addLine (CPoint (px, py));
+            }
+
+            context->setFrameColor (color);
+            context->setLineWidth (strokeWidth);
+            context->drawGraphicsPath (path, CDrawContext::kPathStroked);
+        }
+
+        // Frame border
+        context->setFrameColor (CColor (80, 80, 80, 255));
+        context->setLineWidth (1.0);
+        context->drawRect (r, kDrawStroked);
+
+        setDirty (false);
+    }
+
+private:
+    int segments;
+    float strokeWidth;
+    CColor color;
+    double animPhase = 0.0;
+    SharedPointer<CVSTGUITimer> timer;
 };

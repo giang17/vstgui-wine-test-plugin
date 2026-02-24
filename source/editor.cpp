@@ -271,6 +271,19 @@ bool PLUGIN_API Editor::open (void* parent, const PlatformType& platformType)
     frame->addView (new ZigzagStressView (CRect (20, 385, 290, 420), 40, 3.0f, kWhite));
     frame->addView (new StressWaveformView (CRect (20, 430, 590, 475), 400, 1.5f, kGreen));
 
+    // --- Live Animation (memory leak test) ---
+    auto animLabel = new CTextLabel (CRect (20, 482, 600, 497));
+    animLabel->setText ("Live Animation (60fps, 200 segments) - memory leak test");
+    animLabel->setFontColor (CColor (255, 200, 80, 255));
+    animLabel->setBackColor (kBgColor);
+    animLabel->setFrameColor (kBgColor);
+    animLabel->setHoriAlign (kLeftText);
+    frame->addView (animLabel);
+
+    animWaveform = new AnimatedWaveformView (CRect (20, 500, 600, 550), 200, 2.0f, kGreen);
+    frame->addView (animWaveform);
+    static_cast<AnimatedWaveformView*> (animWaveform)->start ();
+
     frame->open (parent, platformType);
 
     // Delayed redraw for Wine — initial WM_PAINT may show framebuffer garbage
@@ -282,6 +295,11 @@ bool PLUGIN_API Editor::open (void* parent, const PlatformType& platformType)
 
 void PLUGIN_API Editor::close ()
 {
+    if (animWaveform)
+    {
+        static_cast<AnimatedWaveformView*> (animWaveform)->stop ();
+        animWaveform = nullptr;
+    }
     if (frame)
     {
         frame->forget ();
